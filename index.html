@@ -352,7 +352,7 @@ $("#dApply").addEventListener("click",async()=>{
 function hint(t){$("#micHint").textContent=t}
 function micState(on){recOn=on;$("#micb").classList.toggle("on",on);hint(on?"J'enregistre… parle, puis touche le micro quand tu as fini.":"Touche le micro et parle. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque ».")}
 let asrP=null,mStream=null,aCtx=null,chunks=[],busy=false,dl=0;
-function loadAsr(){if(asrP)return asrP;asrP=(async()=>{const T=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3");T.env.allowLocalModels=false;return await T.pipeline("automatic-speech-recognition","Xenova/whisper-base",{progress_callback:p=>{if(p.status==="progress"&&p.total>3e6){dl=Math.round(p.progress);if(busy)hint("Préparation de la dictée (seulement la première fois) : "+dl+" %")}}})})();asrP.catch(()=>{asrP=null});return asrP}
+function loadAsr(){if(asrP)return asrP;asrP=(async()=>{const T=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3");T.env.allowLocalModels=false;let gpu=false;try{gpu=!!(navigator.gpu&&await navigator.gpu.requestAdapter())}catch(e){}const fl={};const progress_callback=p=>{if(p.status==="progress"&&p.total){fl[p.file]=[p.loaded,p.total];let l=0,t=0;for(const k in fl){l+=fl[k][0];t+=fl[k][1]}dl=Math.min(99,Math.round(l/t*100));if(busy&&t>3e6)hint("Préparation de la dictée (seulement la première fois) : "+dl+" %")}};return gpu?await T.pipeline("automatic-speech-recognition","onnx-community/whisper-small",{device:"webgpu",dtype:{encoder_model:"fp32",decoder_model_merged:"q4"},progress_callback}):await T.pipeline("automatic-speech-recognition","Xenova/whisper-base",{progress_callback})})();asrP.then(()=>{dl=100}).catch(()=>{asrP=null});return asrP}
 function meter(){try{aCtx=new (window.AudioContext||window.webkitAudioContext)();const an=aCtx.createAnalyser();an.fftSize=512;aCtx.createMediaStreamSource(mStream).connect(an);const buf=new Uint8Array(512);const tick=()=>{if(!aCtx)return;an.getByteTimeDomainData(buf);let p=0;for(const v of buf)p=Math.max(p,Math.abs(v-128)/128);$("#micb").style.boxShadow="0 0 0 "+Math.round(4+p*45)+"px rgba(43,154,120,.28)";requestAnimationFrame(tick)};tick()}catch(e){}}
 function stopMeter(){try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{aCtx&&aCtx.close()}catch(e){}aCtx=null;mStream=null;$("#micb").style.boxShadow=""}
 async function startMic(){
@@ -368,9 +368,10 @@ async function transcribe(blob){
   busy=true;hint(asrP&&dl<100&&dl>0?"Préparation de la dictée (seulement la première fois) : "+dl+" %":"Je transcris…");$("#micb").classList.add("busy");
   try{
     const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC({sampleRate:16000});const ab=await ac.decodeAudioData(await blob.arrayBuffer());ac.close&&ac.close();
-    const data=ab.getChannelData(0);const m=await loadAsr();hint("Je transcris…");
-    const out=await m(data,{language:"french",task:"transcribe",chunk_length_s:30,stride_length_s:5});
-    const t=String(out&&out.text||"").trim();
+    let data=ab.getChannelData(0);let mx=0;for(const v of data)mx=Math.max(mx,Math.abs(v));if(mx<0.01){hint("Je n'ai rien entendu : le son du micro est trop faible.");return}data=data.map(v=>v/mx*0.9);const m=await loadAsr();hint("Je transcris…");
+    const opt={language:"french",task:"transcribe",no_repeat_ngram_size:3,max_new_tokens:160};if(ab.duration>28){opt.chunk_length_s=30;opt.stride_length_s=5}
+    const out=await m(data,opt);
+    const t=String(out&&out.text||"").replace(/(.{6,}?)(?:\s*\1){2,}/g,"$1").trim();
     if(!t){hint("Je n'ai rien entendu, réessaie.");return}
     const cur=$("#dTxt").value.trim();$("#dTxt").value=(cur?cur+". ":"")+t;
     props=parseText($("#dTxt").value);drawProps();
