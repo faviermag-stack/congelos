@@ -351,15 +351,22 @@ $("#dApply").addEventListener("click",async()=>{
 });
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function micState(on){recOn=on;$("#micb").classList.toggle("on",on);$("#micHint").textContent=on?"Je vous écoute… touchez le micro pour terminer.":"Touchez le micro et parlez. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque »."}
+let wdMsg="",wd=null,heard=false,peak=0,mStream=null,aCtx=null;
+function stopMeter(){clearTimeout(wd);try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{aCtx&&aCtx.close()}catch(e){}mStream=null;aCtx=null}
+async function startMeter(){peak=0;try{mStream=await navigator.mediaDevices.getUserMedia({audio:true});aCtx=new (window.AudioContext||window.webkitAudioContext)();const an=aCtx.createAnalyser();an.fftSize=512;aCtx.createMediaStreamSource(mStream).connect(an);const buf=new Uint8Array(an.fftSize);const tick=()=>{if(!aCtx)return;an.getByteTimeDomainData(buf);for(const v of buf){const d=Math.abs(v-128)/128;if(d>peak)peak=d}requestAnimationFrame(tick)};tick()}catch(e){peak=-1}}
+const FN="clique dans la zone de texte ci-dessous et appuie deux fois sur la touche Fn (ou 🎤) pour dicter avec le Mac, puis arrête : je range tout seul.";
 function startMic(){
   if(recOn&&rec){rec.stop();return}
-  if(!SR){$("#micHint").textContent="La dictée n'est pas disponible dans ce navigateur : touchez la zone de texte, puis le micro de votre clavier.";return}
-  try{rec=new SR();rec.lang="fr-FR";rec.interimResults=true;rec.continuous=true;const base=$("#dTxt").value.trim()?$("#dTxt").value.trim()+". ":"";
-    rec.onresult=ev=>{let t="";for(const r of ev.results)t+=r[0].transcript;$("#dTxt").value=base+t};
-    rec.onerror=ev=>{micState(false);$("#micHint").textContent=ev.error==="not-allowed"||ev.error==="service-not-allowed"?"Le micro est refusé : autorisez-le pour ce site (icône à gauche de l'adresse), puis réessayez.":"Je n'ai pas bien entendu, touchez le micro pour réessayer."};
-    rec.onend=()=>{micState(false);if($("#dTxt").value.trim()){props=parseText($("#dTxt").value);drawProps();$("#micHint").textContent=props.length?"Vérifiez ci-dessous, puis touchez Tout ranger. Touchez le micro pour compléter.":"Je n'ai rien compris, réessayez."}};
-    rec.start();micState(true)}catch(e){micState(false);$("#micHint").textContent="La dictée n'a pas pu démarrer : touchez la zone de texte, puis le micro de votre clavier."}
+  if(!SR){$("#micHint").textContent="La dictée n'est pas disponible dans ce navigateur : "+FN;$("#dTxt").focus();return}
+  try{rec=new SR();rec.lang="fr-FR";rec.interimResults=true;rec.continuous=true;heard=false;wdMsg="";const base=$("#dTxt").value.trim()?$("#dTxt").value.trim()+". ":"";
+    rec.onresult=ev=>{heard=true;let t="";for(const r of ev.results)t+=r[0].transcript;$("#dTxt").value=base+t};
+    rec.onerror=ev=>{const e=ev.error;stopMeter();micState(false);$("#micHint").textContent=e==="not-allowed"||e==="service-not-allowed"?"Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.":e==="audio-capture"?"Aucun micro trouvé sur cet appareil.":e==="network"?"Le service de dictée de Chrome ne répond pas. À la place, "+FN:e==="aborted"?wdMsg:"Je n'ai rien entendu. Réessaie, ou "+FN};
+    rec.onend=()=>{stopMeter();micState(false);if(wdMsg){$("#micHint").textContent=wdMsg;$("#dTxt").focus();return}if($("#dTxt").value.trim()){props=parseText($("#dTxt").value);drawProps();$("#micHint").textContent=props.length?"Vérifie ci-dessous, puis touche Tout ranger. Touche le micro pour compléter.":"Je n'ai rien compris, réessaie."}};
+    rec.start();micState(true);startMeter();
+    wd=setTimeout(()=>{if(!recOn||heard)return;wdMsg=peak>=0&&peak<0.03?"Le micro ne reçoit aucun son. Vérifie le micro choisi dans Chrome (icône micro dans la barre d'adresse › Gérer) et, sur Mac : Réglages Système › Confidentialité › Micro › Google Chrome activé. Sinon, "+FN:"Le micro entend bien, mais la dictée de Chrome ne répond pas. À la place, "+FN;rec.abort()},7000);
+  }catch(e){stopMeter();micState(false);$("#micHint").textContent="La dictée n'a pas pu démarrer. "+FN}
 }
+let pT;$("#dTxt").addEventListener("input",()=>{if(recOn)return;clearTimeout(pT);pT=setTimeout(()=>{if(!$("#dTxt").value.trim())return;props=parseText($("#dTxt").value);drawProps();if(props.length)$("#micHint").textContent="Vérifie ci-dessous, puis touche Tout ranger."},1500)});
 $("#micb").addEventListener("click",startMic);
 
 let tT;
