@@ -349,24 +349,37 @@ $("#dApply").addEventListener("click",async()=>{
   ovD.hidden=true;render();
   if(save.length||del.length){if(await w(()=>run("applyChanges",{save,del})))toast(`${props.length} changement${props.length>1?"s":""} enregistré${props.length>1?"s":""}.`)}
 });
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-function micState(on){recOn=on;$("#micb").classList.toggle("on",on);$("#micHint").textContent=on?"Je vous écoute… touchez le micro pour terminer.":"Touchez le micro et parlez. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque »."}
-let wdMsg="",wd=null,heard=false,peak=0,mStream=null,aCtx=null;
-function stopMeter(){clearTimeout(wd);try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{aCtx&&aCtx.close()}catch(e){}mStream=null;aCtx=null}
-async function startMeter(){peak=0;try{mStream=await navigator.mediaDevices.getUserMedia({audio:true});aCtx=new (window.AudioContext||window.webkitAudioContext)();const an=aCtx.createAnalyser();an.fftSize=512;aCtx.createMediaStreamSource(mStream).connect(an);const buf=new Uint8Array(an.fftSize);const tick=()=>{if(!aCtx)return;an.getByteTimeDomainData(buf);for(const v of buf){const d=Math.abs(v-128)/128;if(d>peak)peak=d}requestAnimationFrame(tick)};tick()}catch(e){peak=-1}}
-const FN="clique dans la zone de texte ci-dessous et appuie deux fois sur la touche Fn (ou 🎤) pour dicter avec le Mac, puis arrête : je range tout seul.";
-function startMic(){
+function hint(t){$("#micHint").textContent=t}
+function micState(on){recOn=on;$("#micb").classList.toggle("on",on);hint(on?"J'enregistre… parle, puis touche le micro quand tu as fini.":"Touche le micro et parle. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque ».")}
+let asrP=null,mStream=null,aCtx=null,chunks=[],busy=false,dl=0;
+function loadAsr(){if(asrP)return asrP;asrP=(async()=>{const T=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3");T.env.allowLocalModels=false;return await T.pipeline("automatic-speech-recognition","Xenova/whisper-base",{progress_callback:p=>{if(p.status==="progress"&&p.total>3e6){dl=Math.round(p.progress);if(busy)hint("Préparation de la dictée (seulement la première fois) : "+dl+" %")}}})})();asrP.catch(()=>{asrP=null});return asrP}
+function meter(){try{aCtx=new (window.AudioContext||window.webkitAudioContext)();const an=aCtx.createAnalyser();an.fftSize=512;aCtx.createMediaStreamSource(mStream).connect(an);const buf=new Uint8Array(512);const tick=()=>{if(!aCtx)return;an.getByteTimeDomainData(buf);let p=0;for(const v of buf)p=Math.max(p,Math.abs(v-128)/128);$("#micb").style.boxShadow="0 0 0 "+Math.round(4+p*45)+"px rgba(43,154,120,.28)";requestAnimationFrame(tick)};tick()}catch(e){}}
+function stopMeter(){try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{aCtx&&aCtx.close()}catch(e){}aCtx=null;mStream=null;$("#micb").style.boxShadow=""}
+async function startMic(){
+  if(busy)return;
   if(recOn&&rec){rec.stop();return}
-  if(!SR){$("#micHint").textContent="La dictée n'est pas disponible dans ce navigateur : "+FN;$("#dTxt").focus();return}
-  try{rec=new SR();rec.lang="fr-FR";rec.interimResults=true;rec.continuous=true;heard=false;wdMsg="";const base=$("#dTxt").value.trim()?$("#dTxt").value.trim()+". ":"";
-    rec.onresult=ev=>{heard=true;let t="";for(const r of ev.results)t+=r[0].transcript;$("#dTxt").value=base+t};
-    rec.onerror=ev=>{const e=ev.error;stopMeter();micState(false);$("#micHint").textContent=e==="not-allowed"||e==="service-not-allowed"?"Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.":e==="audio-capture"?"Aucun micro trouvé sur cet appareil.":e==="network"?"Le service de dictée de Chrome ne répond pas. À la place, "+FN:e==="aborted"?wdMsg:"Je n'ai rien entendu. Réessaie, ou "+FN};
-    rec.onend=()=>{stopMeter();micState(false);if(wdMsg){$("#micHint").textContent=wdMsg;$("#dTxt").focus();return}if($("#dTxt").value.trim()){props=parseText($("#dTxt").value);drawProps();$("#micHint").textContent=props.length?"Vérifie ci-dessous, puis touche Tout ranger. Touche le micro pour compléter.":"Je n'ai rien compris, réessaie."}};
-    rec.start();micState(true);startMeter();
-    wd=setTimeout(()=>{if(!recOn||heard)return;wdMsg=peak>=0&&peak<0.03?"Le micro ne reçoit aucun son. Vérifie le micro choisi dans Chrome (icône micro dans la barre d'adresse › Gérer) et, sur Mac : Réglages Système › Confidentialité › Micro › Google Chrome activé. Sinon, "+FN:"Le micro entend bien, mais la dictée de Chrome ne répond pas. À la place, "+FN;rec.abort()},7000);
-  }catch(e){stopMeter();micState(false);$("#micHint").textContent="La dictée n'a pas pu démarrer. "+FN}
+  loadAsr();
+  try{mStream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){hint("Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.");return}
+  chunks=[];rec=new MediaRecorder(mStream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  rec.onstop=()=>{const type=rec.mimeType;stopMeter();micState(false);transcribe(new Blob(chunks,{type}))};
+  rec.start();micState(true);meter();
 }
-let pT;$("#dTxt").addEventListener("input",()=>{if(recOn)return;clearTimeout(pT);pT=setTimeout(()=>{if(!$("#dTxt").value.trim())return;props=parseText($("#dTxt").value);drawProps();if(props.length)$("#micHint").textContent="Vérifie ci-dessous, puis touche Tout ranger."},1500)});
+async function transcribe(blob){
+  busy=true;hint(asrP&&dl<100&&dl>0?"Préparation de la dictée (seulement la première fois) : "+dl+" %":"Je transcris…");$("#micb").classList.add("busy");
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC({sampleRate:16000});const ab=await ac.decodeAudioData(await blob.arrayBuffer());ac.close&&ac.close();
+    const data=ab.getChannelData(0);const m=await loadAsr();hint("Je transcris…");
+    const out=await m(data,{language:"french",task:"transcribe",chunk_length_s:30,stride_length_s:5});
+    const t=String(out&&out.text||"").trim();
+    if(!t){hint("Je n'ai rien entendu, réessaie.");return}
+    const cur=$("#dTxt").value.trim();$("#dTxt").value=(cur?cur+". ":"")+t;
+    props=parseText($("#dTxt").value);drawProps();
+    hint(props.length?"Vérifie ci-dessous, puis touche Tout ranger. Touche le micro pour compléter.":"Je n'ai rien compris, réessaie.");
+  }catch(e){hint("La transcription n'a pas marché ("+(e&&e.message||e)+"). Tu peux taper dans la zone de texte.")}
+  finally{busy=false;$("#micb").classList.remove("busy")}
+}
+window.__transcribe=transcribe;
+let pT;$("#dTxt").addEventListener("input",()=>{if(recOn)return;clearTimeout(pT);pT=setTimeout(()=>{if(!$("#dTxt").value.trim())return;props=parseText($("#dTxt").value);drawProps();if(props.length)hint("Vérifie ci-dessous, puis touche Tout ranger.")},1500)});
 $("#micb").addEventListener("click",startMic);
 
 let tT;
