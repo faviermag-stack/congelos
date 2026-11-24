@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mes congélos</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2b9a78">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Congélos">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" href="icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: appli de cuisine douce et claire, lisible d'un coup d'oeil.
+   IDEA: chaque congélo est une carte pastel avec ses tiroirs et leur contenu.
+   PICTURE: les deux cartes (menthe et lavande) avec le contenu visible.
+   COLOUR and TYPE: fond blanc, menthe, lavande, corail doux pour les alertes; Nunito + Inter.
+   LAYOUT: entête avec Dicter, recherche, à manger vite, puis les cartes congélos. */
+:root{color-scheme:light;--bg:#f7f9fa;--card:#fff;--ink:#25323b;--mute:#6c7b86;--line:#e5eaee;--mint:#2b9a78;--mintbg:#e2f4ec;--lav:#6a5cc0;--lavbg:#ece8f9;--warn:#c98a12;--warnbg:#fbf1dc;--late:#d9604f;--latebg:#fbe6e2}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:Nunito,Inter,sans-serif;margin:0;line-height:1.1}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #9fd8c4;outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:20px max(4vw,14px) 40px;display:grid;gap:18px}
+.hd{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.hd h1{font-size:clamp(30px,6vw,40px);font-weight:800}
+.hd p{margin:2px 0 0;color:var(--mute);font-size:15px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:46px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:600;display:inline-flex;align-items:center;gap:8px}
+.btn svg{width:20px;height:20px}
+.btn.mic{background:var(--mint);border-color:var(--mint);color:#fff;font-size:17px;padding:0 20px}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.ghost{background:transparent}
+.btn.del{color:var(--late)}
+.tools{display:flex;gap:10px;flex-wrap:wrap}
+.tools input{flex:1 1 220px;min-height:46px;border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--card);font-size:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:36px;border-radius:999px;border:1px solid var(--line);background:var(--card);padding:0 13px;font-size:14px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.prio{background:var(--latebg);border-radius:18px;padding:14px 16px}
+.prio h3{font-size:18px;color:var(--late);margin-bottom:8px}
+.prio .chip{border-color:#f2c3bb}
+.fzs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;align-items:start}
+.fz{background:var(--card);border-radius:22px;border:1px solid var(--line);overflow:hidden;box-shadow:0 6px 20px #25323b0d}
+.fzh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 18px}
+.fz.c0 .fzh{background:var(--mintbg)}.fz.c1 .fzh{background:var(--lavbg)}
+.fz.c0 h2{color:var(--mint)}.fz.c1 h2{color:var(--lav)}
+.fzh h2{font-size:23px;font-weight:800}
+.fzh span{font-size:14px;color:var(--mute);white-space:nowrap}
+.dr{padding:10px 18px 12px;border-top:1px solid var(--line)}
+.dr:first-of-type{border-top:0}
+.drh{font-size:13px;font-weight:600;color:var(--mute);margin:2px 0 6px}
+.empty{font-size:14px;color:var(--mute);padding:4px 0 6px}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
+.drh+.it,.drh+.empty,.cath+.it{border-top:0}
+.cath{font-size:12px;font-weight:700;color:var(--mute);margin:10px 0 0;padding:2px 0}
+.drh+.cath{margin-top:0}
+.nm{background:none;border:0;padding:0;text-align:left;display:grid;gap:1px}
+.nm b{font-size:16px;font-weight:600}
+.nm em{font-style:normal;font-size:14px;color:var(--mute)}
+.nm small{font-size:12px;color:var(--mute)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--mintbg);color:var(--mint);margin-left:6px;white-space:nowrap}
+.soon .pill{background:var(--warnbg);color:var(--warn)}.late .pill{background:var(--latebg);color:var(--late)}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:20px;line-height:1}
+.qty span{min-width:3.6em;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.1}
+.qty span small{display:block;font-weight:400;font-size:12px;color:var(--mute)}
+.foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;color:var(--mute);font-size:13px}
+.foot a{color:inherit}
+.ov{position:fixed;inset:0;background:#25323b66;display:grid;place-items:center;padding:12px;z-index:10}
+.ov[hidden]{display:none}
+.sheet{background:var(--card);border-radius:22px;padding:20px;width:min(620px,100%);max-height:calc(100vh - 24px);overflow:auto;display:grid;gap:14px;box-shadow:0 30px 60px #25323b40}
+.sheet h2{font-size:24px;font-weight:800}
+.f{display:grid;gap:4px;font-size:14px;font-weight:600}
+.f input,.f select,.f textarea,.pv input,.pv select{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--card);font-size:16px;font-weight:400;width:100%}
+.f textarea{padding:10px 12px;min-height:60px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.bar .del{margin-right:auto}
+.hint{font-size:13px;color:var(--mute);font-weight:400;margin:0}
+.big{display:grid;place-items:center;gap:8px;padding:8px 0}
+.micb{width:96px;height:96px;border-radius:50%;border:0;background:var(--mint);color:#fff;display:grid;place-items:center;box-shadow:0 10px 24px #2b9a7855}
+.micb svg{width:42px;height:42px}
+.micb.on{background:var(--late);box-shadow:0 0 0 10px #d9604f33}
+#dTxt{min-height:90px;font-size:17px}
+.pv{border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:8px}
+.pv.out{background:#fdf6f4}
+.pvh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--mintbg);color:var(--mint)}
+.out .tag{background:var(--latebg);color:var(--late)}
+.pv .g3{display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:8px}
+.pv .g3b{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.x{border:0;background:none;color:var(--mute);font-size:22px;width:36px;height:36px}
+.warnline{font-size:13px;color:var(--late)}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 12px 10px 16px;border-radius:14px;display:flex;gap:10px;align-items:center;z-index:20;max-width:calc(100% - 24px)}
+#toast[hidden]{display:none}
+#toast button{min-height:38px;border:0;border-radius:10px;padding:0 12px;background:#fff;color:var(--ink);font-weight:600}
+@media(max-width:600px){.row{grid-template-columns:1fr 1fr}.pv .g3,.pv .g3b{grid-template-columns:1fr 1fr}.pv .g3 .w{grid-column:1/-1}.hd .acts{width:100%}.hd .acts .mic{flex:1;justify-content:center}}
+@media(prefers-reduced-motion:no-preference){.micb.on{animation:pulse 1.2s infinite}@keyframes pulse{50%{box-shadow:0 0 0 18px #d9604f22}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div><h1>Mes congélos</h1><p id="sum">Chargement…</p></div>
+    <div class="acts">
+      <button class="btn mic" id="bDict" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Dicter</button>
+      <button class="btn" id="bAdd" type="button">+ Ajouter</button>
+      <button class="btn ghost" id="bSet" type="button" aria-label="Réglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Réglages</button>
+    </div>
+  </div>
+  <div class="tools"><input id="q" type="search" placeholder="Chercher un produit…" aria-label="Chercher"></div>
+  <div class="chips" id="cats"></div>
+  <section class="prio" id="prio" hidden><h3>À manger en priorité</h3><div class="chips" id="prioL"></div></section>
+  <div class="fzs" id="fzs"></div>
+  <div class="foot"><span id="mode">Chargement…</span><button class="btn ghost" id="bCopy" type="button">Copier l'inventaire</button></div>
+</div>
+
+<div class="ov" id="ovD" hidden>
+  <div class="sheet">
+    <h2>Dicter</h2>
+    <div class="big">
+      <button class="micb" id="micb" type="button" aria-label="Parler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <p class="hint" id="micHint">Touchez le micro et parlez. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque ».</p>
+    </div>
+    <label class="f">Ce que vous avez dit<textarea id="dTxt" placeholder="Vous pouvez aussi taper ici, ou utiliser le micro de votre clavier."></textarea></label>
+    <div class="bar"><button class="btn" type="button" id="dParse">Comprendre</button></div>
+    <div id="dList" style="display:grid;gap:10px"></div>
+    <div class="bar"><button class="btn" type="button" data-close>Fermer</button><button class="btn pri" type="button" id="dApply" hidden>Tout ranger</button></div>
+  </div>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <form class="sheet" id="fm" autocomplete="off">
+    <h2 id="fmT">Ajouter un produit</h2>
+    <label class="f">Produit<input id="iName" list="names" required maxlength="80" placeholder="ex. Steaks hachés"></label>
+    <datalist id="names"></datalist>
+    <label class="f">Description <span class="hint">(facultatif)</span><input id="iNote" maxlength="200" placeholder="ex. pour 4 personnes, fait maison…"></label>
+    <div class="row">
+      <label class="f">Quantité<input id="iQty" type="number" min="0" step="0.5" required inputmode="decimal"></label>
+      <label class="f">Unité<select id="iUnit"></select></label>
+    </div>
+    <div class="row">
+      <label class="f">Congélateur<select id="iFz"></select></label>
+      <label class="f" id="iDrL">Tiroir<select id="iDr"></select></label>
+    </div>
+    <div class="row">
+      <label class="f">Catégorie<select id="iCat"></select></label>
+      <label class="f">Congelé le<input id="iDate" type="date" required></label>
+    </div>
+    <p class="hint" id="iHint"></p>
+    <div class="bar"><button type="button" class="btn del" id="iDel">Supprimer</button><button type="button" class="btn" data-close>Annuler</button><button type="submit" class="btn pri">Enregistrer</button></div>
+  </form>
+</div>
+
+<div class="ov" id="ovS" hidden>
+  <form class="sheet" id="fmS">
+    <h2>Réglages</h2>
+    <div id="sF" style="display:grid;gap:10px"></div>
+    <p class="hint">Mettez 0 tiroir pour un congélateur coffre (banque) : tout sera rangé dans une seule zone.</p>
+    <div class="bar"><button type="button" class="btn" data-close>Annuler</button><button type="submit" class="btn pri">Enregistrer</button></div>
+  </form>
+</div>
+
+<div id="toast" hidden><span id="tMsg"></span><button id="tBtn" type="button" hidden>Annuler</button></div>
+
+<script>
+{
+const CATS=[["Viande",6],["Volaille",6],["Poisson",4],["Légumes",10],["Fruits",10],["Plats cuisinés",3],["Pain & viennoiseries",3],["Desserts & glaces",3],["Condiments & sauces",6],["Autre",6]];
+const KW={"Viande":["viande","boeuf","steak","hache","veau","porc","agneau","saucisse","merguez","chipolata","jambon","lardon","roti","cote","bacon","boulette","filet mignon","entrecote","bavette","gigot","chorizo","andouillette","boudin"],
+"Volaille":["poulet","dinde","canard","volaille","aiguillette","escalope","pintade","caille","nugget","cordon bleu","magret"],
+"Poisson":["poisson","saumon","cabillaud","colin","thon","crevette","moule","calamar","fruits de mer","truite","merlu","lieu","sardine","maquereau","surimi","saint jacques","st jacques","gambas","dorade","bar ","fish"],
+"Légumes":["legume","haricot","petits pois","petit pois","epinard","brocoli","chou","carotte","courgette","poivron","ratatouille","frite","pomme de terre","pommes de terre","champignon","oignon","mais","poelee","soupe","veloute","potage","aubergine","poireau","tomate","asperge","artichaut","celeri","navet","potiron","butternut","courge"],
+"Condiments & sauces":["sauce","pesto","bouillon","fond de","persil","ciboulette","basilic","coriandre","menthe","thym","herbes","herbe","ail","echalote","gingembre","beurre","creme fraiche","fromage rape","parmesan","piment","citronnelle","zeste","coulis de tomate","concentre","condiment","vinaigrette","mayonnaise"],
+"Fruits":["fruit","fraise","framboise","myrtille","mangue","ananas","cerise","pomme","poire","peche","abricot","banane","compote","coulis","mure","cassis","groseille","rhubarbe","citron","prune","mirabelle"],
+"Plats cuisinés":["plat","lasagne","gratin","hachis","bolognaise","sauce bolognaise","sauce tomate maison","pizza","quiche","tarte salee","curry","chili","blanquette","bourguignon","couscous","paella","reste","parmentier","ravioli","raviole","pates","riz","tajine","pot au feu","cassoulet","choucroute","risotto","nem","samoussa","feuillete","cannelloni","moussaka","croque"],
+"Pain & viennoiseries":["pain","baguette","croissant","brioche","viennoiserie","pain au chocolat","chocolatine","mie","bun","crepe","gaufre","pate feuilletee","pate brisee","pate a pizza","pate sablee","burger","muffin anglais","bagel","naan","galette"],
+"Desserts & glaces":["glace","sorbet","dessert","gateau","tarte","buche","cake","muffin","cookie","mousse","creme glacee","esquimau","magnum","cornet","eclair","profiterole","macaron","tiramisu","fondant","brownie"]};
+const UNITS=["pièce(s)","portion(s)","sachet(s)","boîte(s)","barquette(s)","kg","g"];
+const UNITW=[["sachet","sachet(s)"],["paquet","sachet(s)"],["boite","boîte(s)"],["pot","boîte(s)"],["bac","boîte(s)"],["tupperware","boîte(s)"],["barquette","barquette(s)"],["portion","portion(s)"],["part","portion(s)"],["piece","pièce(s)"],["kilos","kg"],["kilo","kg"],["kg","kg"],["grammes","g"],["gramme","g"]];
+const NUM={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10,onze:11,douze:12,treize:13,quatorze:14,quinze:15,seize:16,vingt:20,trente:30,quarante:40,cinquante:50,cent:100,douzaine:12,demi:0.5,demie:0.5};
+const ORD={premier:1,un:1,une:1,"1":1,deuxieme:2,second:2,deux:2,"2":2,troisieme:3,trois:3,"3":3,quatrieme:4,quatre:4,"4":4,cinquieme:5,cinq:5,"5":5,six:6,"6":6};
+const SYN=[["frigo","refrigerateur","petit congel","cuisine"],["banque","coffre","grand congel","garage","cellier","cave"]];
+const catOf=k=>CATS.find(c=>c[0]===k)||CATS[CATS.length-1];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>[...String(s||"").toLowerCase()].map(c=>c.normalize("NFD")[0]).join("").replace(/[’`]/g,"'");
+const today=(o)=>{const d=new Date();d.setDate(d.getDate()-(o||0));d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const newId=()=>"i"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const API="https://script.google.com/macros/s/AKfycbxqP5DIWHbxpVT_GOhT4aP6DJBW3fecXmH3YWFzSpcUV9K2KjQgIcqJYEs0Oj1SKivA/exec";
+async function run(fn,...a){let r;if(fn==="getAll")r=await fetch(API+"?action=getAll");else r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:fn,args:a})});const j=await r.json();if(!j||j.error)throw new Error(j&&j.error||"erreur");return j.result}
+let items=[],loaded=false,editId=null;
+let cfg={freezers:[{id:"1",name:"Congélo frigo",drawers:3},{id:"2",name:"Banque",drawers:0}]};
+const f={q:"",cat:""};
+
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function cleanItem(o,id){const d=String(o.date||"");return{id:String(id),name:String(o.name||"Sans nom").slice(0,80),cat:catOf(o.cat)[0],qty:Math.max(0,+o.qty||0),unit:String(o.unit||UNITS[0]),fz:String(o.fz||"1"),dr:Math.max(0,parseInt(o.dr)||0),date:d.length===10&&d[4]==="-"&&d[7]==="-"?d:today(),note:String(o.note||"").slice(0,200)}}
+function cleanCfg(d){if(!d||!Array.isArray(d.freezers)||!d.freezers.length)return;cfg={freezers:d.freezers.slice(0,4).map((x,i)=>({id:String(x.id||i+1),name:String(x.name||"Congélo "+(i+1)).slice(0,30),drawers:Math.min(12,Math.max(0,parseInt(x.drawers)||0))}))}}
+const fzOf=id=>cfg.freezers.find(x=>x.id===String(id))||cfg.freezers[0];
+const drOf=it=>{const n=fzOf(it.fz).drawers;return n?Math.min(Math.max(1,it.dr),n):0};
+const ageDays=it=>Math.max(0,Math.floor((Date.now()-new Date(it.date+"T12:00").getTime())/864e5));
+function ageLabel(it){const d=ageDays(it);if(d<1)return"aujourd'hui";if(d<31)return d+" j";return Math.floor(d/30.44)+" mois"}
+function status(it){const r=ageDays(it)/(catOf(it.cat)[1]*30.44);return r>=1?"late":r>=.75?"soon":"ok"}
+const fmtQ=n=>String(Math.round(n*100)/100).replace(".",",");
+function guessCat(name){const n=" "+norm(name)+" ";let best="Autre",len=0;for(const k in KW)for(const w of KW[k])if(n.includes(w)&&w.length>len){best=k;len=w.length}return best}
+const sing=w=>w.length>3&&(w.endsWith("s")||w.endsWith("x"))?w.slice(0,-1):w;
+const toks=s=>norm(s).replace(/[^a-z0-9 ]/g," ").split(" ").filter(w=>w.length>1&&!["de","du","des","la","le","les","au","aux","en","et","a"].includes(w)).map(sing);
+
+function render(){
+  const late=items.filter(i=>status(i)==="late");
+  $("#sum").textContent=!loaded?"Chargement…":items.length?`${items.length} produit${items.length>1?"s":""}${late.length?` · ${late.length} à manger vite`:""}`:"Rien d'enregistré pour l'instant.";
+  $("#cats").innerHTML=[["","Tout"],...CATS].map(c=>`<button type="button" class="chip${f.cat===c[0]?" on":""}" data-cat="${esc(c[0])}">${esc(c[0]||c[1])}</button>`).join("");
+  const pr=late.sort((a,b)=>ageDays(b)-ageDays(a)).slice(0,8);
+  $("#prio").hidden=!pr.length;
+  $("#prioL").innerHTML=pr.map(i=>`<button type="button" class="chip" data-edit="${esc(i.id)}">${esc(i.name)} · ${esc(ageLabel(i))}</button>`).join("");
+  const q=norm(f.q);
+  const vis=items.filter(i=>(!f.cat||i.cat===f.cat)&&(!q||norm(i.name+" "+i.note).includes(q))).sort((a,b)=>ageDays(b)-ageDays(a));
+  const row=i=>`<div class="it ${status(i)}"><button type="button" class="nm" data-edit="${esc(i.id)}"><b>${esc(i.name)}<span class="pill">${esc(ageLabel(i))}</span></b>${i.note?`<em>${esc(i.note)}</em>`:""}</button><div class="qty"><button type="button" data-dec="${esc(i.id)}" aria-label="Retirer 1">−</button><span>${fmtQ(i.qty)}<small>${esc(i.unit)}</small></span><button type="button" data-inc="${esc(i.id)}" aria-label="Ajouter 1">+</button></div></div>`;
+  const list=a=>a.length?CATS.map(c=>{const g=a.filter(i=>i.cat===c[0]);return g.length?`<div class="cath">${esc(c[0])}</div>`+g.map(row).join(""):""}).join(""):`<div class="empty">${loaded?"Vide":"…"}</div>`;
+  $("#fzs").innerHTML=cfg.freezers.map((z,k)=>{
+    const its=vis.filter(i=>fzOf(i.fz).id===z.id),tot=items.filter(i=>fzOf(i.fz).id===z.id).length;
+    const body=z.drawers?Array.from({length:z.drawers},(_,d)=>`<div class="dr"><div class="drh">Tiroir ${d+1}</div>${list(its.filter(i=>drOf(i)===d+1))}</div>`).join(""):`<div class="dr">${list(its)}</div>`;
+    return `<section class="fz c${k%2}"><div class="fzh"><h2>${esc(z.name)}</h2><span>${tot} produit${tot>1?"s":""}</span></div>${body}</section>`}).join("");
+}
+
+async function w(fn){try{await fn();return true}catch(e){try{await new Promise(r=>setTimeout(r,800));await fn();return true}catch(e2){}toast("L'enregistrement a échoué. Vérifiez votre connexion puis réessayez.");load();return false}}
+function upsert(it){const k=items.findIndex(x=>x.id===it.id);if(k<0)items.push(it);else items[k]=it}
+async function putItem(it){upsert(it);render();return w(()=>run("applyChanges",{save:[it],del:[]}))}
+async function delItem(id){items=items.filter(x=>x.id!==id);render();return w(()=>run("applyChanges",{save:[],del:[id]}))}
+const timers={};
+function bump(id,d){
+  const it=items.find(x=>x.id===id);if(!it)return;
+  const n=Math.max(0,Math.round((it.qty+d)*100)/100);
+  if(n<=0){const copy={...it};clearTimeout(timers[id]);delItem(id);toast(`${copy.name} : plus rien, retiré.`,()=>putItem(copy));return}
+  it.qty=n;render();clearTimeout(timers[id]);
+  timers[id]=setTimeout(()=>{const cur=items.find(x=>x.id===id);if(cur)w(()=>run("applyChanges",{save:[cur],del:[]}))},700);
+}
+
+function drOpts(fzId,sel){const z=fzOf(fzId);return z.drawers?Array.from({length:z.drawers},(_,k)=>`<option value="${k+1}"${k+1===sel?" selected":""}>Tiroir ${k+1}</option>`).join(""):`<option value="0">Pas de tiroir</option>`}
+const fzOpts=sel=>cfg.freezers.map(z=>`<option value="${esc(z.id)}"${z.id===String(sel)?" selected":""}>${esc(z.name)}</option>`).join("");
+const catOpts=sel=>CATS.map(c=>`<option${c[0]===sel?" selected":""}>${esc(c[0])}</option>`).join("");
+const unitOpts=sel=>UNITS.map(u=>`<option${u===sel?" selected":""}>${esc(u)}</option>`).join("");
+
+const ov=$("#ov");
+function fillDr(fzId,sel){$("#iDr").innerHTML=drOpts(fzId,sel);$("#iDr").disabled=!fzOf(fzId).drawers}
+function openForm(it){
+  editId=it?it.id:null;const last=lsGet("congelos-last")||{};
+  $("#fmT").textContent=it?"Modifier":"Ajouter un produit";
+  const v=it||{name:"",cat:"Autre",qty:1,unit:UNITS[0],fz:last.fz||cfg.freezers[0].id,dr:last.dr||1,date:today(),note:""};
+  $("#iCat").innerHTML=catOpts(v.cat);$("#iUnit").innerHTML=unitOpts(UNITS.includes(v.unit)?v.unit:UNITS[0]);$("#iFz").innerHTML=fzOpts(fzOf(v.fz).id);
+  $("#names").innerHTML=[...new Set(items.map(i=>i.name))].slice(0,200).map(n=>`<option value="${esc(n)}">`).join("");
+  $("#iName").value=v.name;$("#iQty").value=v.qty;$("#iDate").value=v.date;$("#iNote").value=v.note;fillDr(fzOf(v.fz).id,drOf(v)||v.dr);
+  $("#iDel").hidden=!it;hint();ov.hidden=false;setTimeout(()=>$("#iName").focus(),30);
+}
+function hint(){const c=catOf($("#iCat").value);$("#iHint").textContent=`${c[0]} : idéalement sous ${c[1]} mois (indicatif).`}
+$("#iCat").addEventListener("change",hint);
+$("#iName").addEventListener("change",()=>{if(!editId&&$("#iCat").value==="Autre"){$("#iCat").value=guessCat($("#iName").value);hint()}});
+$("#iFz").addEventListener("change",e=>fillDr(e.target.value,+$("#iDr").value||1));
+$("#fm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const it=cleanItem({name:$("#iName").value.trim(),cat:$("#iCat").value,qty:$("#iQty").value,unit:$("#iUnit").value,fz:$("#iFz").value,dr:$("#iDr").value,date:$("#iDate").value,note:$("#iNote").value.trim()},editId||newId());
+  if(it.qty<=0){toast("Mettez une quantité supérieure à 0.");return}
+  lsSet("congelos-last",{fz:it.fz,dr:it.dr});ov.hidden=true;
+  if(await putItem(it))toast(editId?"Modifié.":`${it.name} rangé.`);
+});
+$("#iDel").addEventListener("click",()=>{const it=items.find(x=>x.id===editId);ov.hidden=true;if(!it)return;const c={...it};delItem(it.id);toast(`${c.name} supprimé.`,()=>putItem(c))});
+
+const ovS=$("#ovS");
+function openSet(){$("#sF").innerHTML=cfg.freezers.map((z,k)=>`<div class="row"><label class="f">Nom du congélateur ${k+1}<input data-n="${k}" value="${esc(z.name)}" maxlength="30" required></label><label class="f">Nombre de tiroirs<input data-d="${k}" type="number" min="0" max="12" value="${z.drawers}" required></label></div>`).join("");ovS.hidden=false}
+$("#fmS").addEventListener("submit",e=>{
+  e.preventDefault();
+  cfg={freezers:cfg.freezers.map((z,k)=>({id:z.id,name:document.querySelector(`[data-n="${k}"]`).value.trim()||z.name,drawers:Math.min(12,Math.max(0,parseInt(document.querySelector(`[data-d="${k}"]`).value)||0))}))};
+  ovS.hidden=true;render();w(()=>run("saveFreezers",cfg.freezers));
+});
+
+function parseSeg(o){
+  let n=norm(o);const cut=(re)=>{const m=re.exec(n);if(!m)return null;const s=m.index,e=s+m[0].length;m.orig=o.slice(s,e);o=o.slice(0,s)+" ".repeat(e-s)+o.slice(e);n=n.slice(0,s)+" ".repeat(e-s)+n.slice(e);return m};
+  const r={action:null,fz:null,dr:null,qty:null,unit:null,note:"",date:null,name:""};
+  if(cut(/\b(j'ai |je )?(sorti|sortie|sortis|sors|sortir|pris|prendre|prends|enleve|enlever|enleve|retire|retirer|mange|manger|utilise|utiliser|consomme|termine|fini)\b/))r.action="out";
+  if(cut(/\b(j'ai |je |on a |il y a |y a )?(mis|mets|mettre|ajoute|ajouter|rajoute|rajouter|range|ranger|congele|congeler|stocke|nouveau|nouvelle|ajout)\b/))r.action=r.action||"add";
+  cut(/\b(il y a|il reste|j'ai|on a)\b/);
+  if(cut(/\b(d')?avant[- ]hier\b/))r.date=today(2);else if(cut(/\b(d')?hier\b/))r.date=today(1);else cut(/\baujourd'hui\b/);
+  let m=cut(/\b(dans |au |a |du |de |en |sur )?(le |la |l'|les )?tiroir\s*(n ?|numero )?(\d|un|une|deux|trois|quatre|cinq|six|premier|deuxieme|second|troisieme|quatrieme|cinquieme|du haut|d'en haut|en haut|du milieu|du bas|d'en bas|en bas)\b/);
+  if(m){const t=m[4];r.dr=/haut/.test(t)?1:/milieu/.test(t)?"mid":/bas/.test(t)?"last":ORD[t]||1}
+  m=cut(/\b(dans |au |du |de |en |sur )?(le |la |l'|les |mon |ma )?congel(o|ateur)s?\s*(n ?|numero )?(1|2|un|deux)\b/);
+  if(m)r.fz=String(ORD[m[5]]);
+  if(!r.fz)cfg.freezers.forEach((z,k)=>{if(r.fz)return;const words=[...(SYN[k]||[]),...norm(z.name).split(" ").filter(x=>x.length>3&&!x.startsWith("congel"))];for(const wd of words){const re=new RegExp("\\b(dans |au |du |de |en |sur |a )?(le |la |l'|les |mon |ma )?(congel(o|ateur)s? )?(du |de la |de )?"+wd.replace(/[^a-z ]/g,"")+"s?\\b");if(cut(re)){r.fz=z.id;break}}});
+  cut(/\b(dans |au |du |de |en |sur )?(le |la |l'|les |mon |ma )?congel(o|ateur)s?\b/);
+  const pn=cut(/\bpour\b.*$/);if(pn)r.note=pn.orig;
+  m=cut(/(\d+(?:[.,]\d+)?|\b(?:une|un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt|trente|quarante|cinquante|cent)\b)(\s+(demi|demie|douzaine)s?\b)?/);
+  if(m){let v=parseFloat(String(m[1]).replace(",","."));if(isNaN(v))v=NUM[m[1]];if(m[3]==="douzaine")v=v*12;else if(m[3])v=v===1?0.5:v+0.5;r.qty=v}
+  else if(cut(/\b(une |un )?demi(e)?\b/))r.qty=0.5;else if(cut(/\b(une )?douzaine\b/))r.qty=12;
+  for(const [wd,u] of UNITW){if(cut(new RegExp("\\b"+wd+"s?\\b( de | d'| d )?"))){r.unit=u;break}}
+  o=o.replace(/\s+/g," ").trim().replace(/^[\s:,;.!?-]+/,"").replace(/^(de |d'|des |du |de la |les |le |la |l'|un |une |et |aussi )+/i,"").replace(/[,.;:!?]+$/,"").replace(/\s+(et|dans|du|de|au|en)$/i,"").trim();
+  r.name=o?o[0].toUpperCase()+o.slice(1):"";
+  if(r.note)r.note=r.note.trim();
+  return r;
+}
+function parseText(text){
+  const src=String(text||"").replace(/\n/g,". ");const n=norm(src);
+  const re=/[,;.]|\bpuis\b|\bensuite\b|\bet\b(?=\s+(\d|un |une |deux |trois |quatre |cinq |six |sept |huit |neuf |dix |douze |des |du |de la |de l'|j'ai |dans |aussi |puis ))/g;
+  const segs=[];let last=0,m;while((m=re.exec(n))){segs.push(src.slice(last,m.index));last=m.index+m[0].length}segs.push(src.slice(last));
+  const out=segs.map(s=>s.trim()).filter(Boolean).map(parseSeg);out.forEach(r=>r.ex=!!r.fz);
+  let fz=null,dr=null,act=null;
+  for(const r of out){if(r.fz){fz=r.fz;dr=r.dr}else if(r.dr&&!r.name){dr=r.dr}if(!r.fz&&fz){r.fz=fz;if(r.dr==null)r.dr=dr}if(!r.fz&&r.dr==null&&dr!=null)r.dr=dr;if(r.action)act=r.action;else r.action=act==='out'&&r.ex?'add':act}
+  fz=null;dr=null;for(let i=out.length-1;i>=0;i--){const r=out[i];if(r.fz){fz=r.fz;dr=r.dr}else if(fz){r.fz=fz;if(r.dr==null)r.dr=dr}}
+  const res=out.filter(r=>r.name).map(r=>{
+    const z=fzOf(r.fz||cfg.freezers[0].id);let d=0;
+    if(z.drawers){d=r.dr==="mid"?Math.ceil(z.drawers/2):r.dr==="last"?z.drawers:Math.min(z.drawers,Math.max(1,parseInt(r.dr)||1))}
+    return{action:r.action||"add",name:r.name,qty:r.qty||1,unit:r.unit||"",fz:z.id,dr:d,cat:guessCat(r.name),note:r.note,date:r.date||today(),noPlace:!r.fz,noDr:z.drawers&&r.dr==null};
+  });
+  return res;
+}
+window.__parse=parseText;
+function findItem(p){
+  const t=toks(p.name);if(!t.length)return null;let best=null,bs=0;
+  for(const i of items){const it=toks(i.name);const shared=t.filter(x=>it.includes(x)).length;if(!shared)continue;let s=shared/Math.max(t.length,it.length);if(!p.noPlace&&String(i.fz)===String(p.fz))s+=0.2;if(drOf(i)===p.dr)s+=0.1;if(s>bs||(s===bs&&best&&ageDays(i)>ageDays(best))){bs=s;best=i}}
+  return best;
+}
+
+const ovD=$("#ovD");let props=[],rec=null,recOn=false;
+function openDict(){props=[];$("#dTxt").value="";$("#dList").innerHTML="";$("#dApply").hidden=true;ovD.hidden=false}
+function drawProps(){
+  $("#dList").innerHTML=props.map((p,k)=>{
+    const m=p.action==="out"?findItem(p):null;p.match=m?m.id:null;
+    const warn=p.action==="out"?(m?`Sera retiré de : ${esc(m.name)} (${esc(fzOf(m.fz).name)}${drOf(m)?", tiroir "+drOf(m):""}, il en reste ${fmtQ(m.qty)})`:"Produit introuvable dans vos congélos."):(p.noPlace?"Congélateur non précisé : vérifiez.":p.noDr?"Tiroir non précisé : vérifiez.":"");
+    return `<div class="pv${p.action==="out"?" out":""}" data-k="${k}"><div class="pvh"><span class="tag">${p.action==="out"?"Sortir":"Ajouter"}</span><select data-f="action" aria-label="Action" style="width:auto"><option value="add"${p.action==="add"?" selected":""}>Ajouter</option><option value="out"${p.action==="out"?" selected":""}>Sortir</option></select><button type="button" class="x" data-rm="${k}" aria-label="Retirer">×</button></div>
+    <div class="g3"><input class="w" data-f="name" value="${esc(p.name)}" aria-label="Produit"><input data-f="qty" type="number" min="0" step="0.5" value="${p.qty}" aria-label="Quantité"><select data-f="unit" aria-label="Unité">${unitOpts(p.unit||"pièce(s)")}</select></div>
+    ${p.action==="add"?`<div class="g3b"><select data-f="fz" aria-label="Congélateur">${fzOpts(p.fz)}</select><select data-f="dr" aria-label="Tiroir"${fzOf(p.fz).drawers?"":" disabled"}>${drOpts(p.fz,p.dr)}</select><select data-f="cat" aria-label="Catégorie">${catOpts(p.cat)}</select></div><input data-f="note" value="${esc(p.note)}" placeholder="Description (facultatif)" aria-label="Description">`:""}
+    ${warn?`<div class="warnline">${warn}</div>`:""}</div>`}).join("");
+  $("#dApply").hidden=!props.length;
+  if(!props.length&&$("#dTxt").value.trim())$("#dList").innerHTML=`<div class="warnline">Je n'ai rien compris. Essayez par exemple : « 2 sachets de petits pois dans la banque ».</div>`;
+}
+$("#dList").addEventListener("change",e=>{const el=e.target,box=el.closest(".pv");if(!box||!el.dataset.f)return;const p=props[+box.dataset.k],k=el.dataset.f;p[k]=k==="qty"?+el.value:k==="dr"?+el.value:el.value;if(k==="fz"){const z=fzOf(p.fz);p.dr=z.drawers?1:0}if(k==="name"&&p.action==="add")p.cat=guessCat(p.name);p.noPlace=false;p.noDr=false;if(["fz","action","name"].includes(k))drawProps()});
+$("#dParse").addEventListener("click",()=>{props=parseText($("#dTxt").value);drawProps()});
+$("#dApply").addEventListener("click",async()=>{
+  const save=[],del=[];const undo=[];
+  for(const p of props){
+    if(p.action==="out"){const m=items.find(i=>i.id===p.match);if(!m)continue;undo.push({...m});const left=Math.round((m.qty-(p.qty||1))*100)/100;if(left<=0){items=items.filter(i=>i.id!==m.id);del.push(m.id)}else{m.qty=left;save.push(m)}}
+    else{const name=p.name.trim();if(!name)continue;const same=items.find(i=>toks(i.name).join(" ")===toks(name).join(" ")&&String(i.fz)===String(p.fz)&&drOf(i)===(+p.dr||0)&&i.date===p.date&&i.unit===(p.unit||"pièce(s)"));
+      if(same){undo.push({...same});same.qty=Math.round((same.qty+(+p.qty||1))*100)/100;save.push(same)}
+      else{const it=cleanItem({name,cat:p.cat,qty:p.qty||1,unit:p.unit||"pièce(s)",fz:p.fz,dr:p.dr,date:p.date,note:p.note},newId());items.push(it);save.push(it)}}
+  }
+  ovD.hidden=true;render();
+  if(save.length||del.length){if(await w(()=>run("applyChanges",{save,del})))toast(`${props.length} changement${props.length>1?"s":""} enregistré${props.length>1?"s":""}.`)}
+});
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function micState(on){recOn=on;$("#micb").classList.toggle("on",on);$("#micHint").textContent=on?"Je vous écoute… touchez le micro pour terminer.":"Touchez le micro et parlez. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque »."}
+function startMic(){
+  if(recOn&&rec){rec.stop();return}
+  if(!SR){$("#micHint").textContent="La dictée n'est pas disponible dans ce navigateur : touchez la zone de texte, puis le micro de votre clavier.";return}
+  try{rec=new SR();rec.lang="fr-FR";rec.interimResults=true;rec.continuous=true;const base=$("#dTxt").value.trim()?$("#dTxt").value.trim()+". ":"";
+    rec.onresult=ev=>{let t="";for(const r of ev.results)t+=r[0].transcript;$("#dTxt").value=base+t};
+    rec.onerror=ev=>{micState(false);$("#micHint").textContent=ev.error==="not-allowed"||ev.error==="service-not-allowed"?"Le micro est refusé : autorisez-le pour ce site (icône à gauche de l'adresse), puis réessayez.":"Je n'ai pas bien entendu, touchez le micro pour réessayer."};
+    rec.onend=()=>{micState(false);if($("#dTxt").value.trim()){props=parseText($("#dTxt").value);drawProps();$("#micHint").textContent=props.length?"Vérifiez ci-dessous, puis touchez Tout ranger. Touchez le micro pour compléter.":"Je n'ai rien compris, réessayez."}};
+    rec.start();micState(true)}catch(e){micState(false);$("#micHint").textContent="La dictée n'a pas pu démarrer : touchez la zone de texte, puis le micro de votre clavier."}
+}
+$("#micb").addEventListener("click",startMic);
+
+let tT;
+function toast(msg,undo){$("#tMsg").textContent=msg;const b=$("#tBtn");b.hidden=!undo;b.onclick=()=>{$("#toast").hidden=true;undo&&undo()};$("#toast").hidden=false;clearTimeout(tT);tT=setTimeout(()=>$("#toast").hidden=true,undo?6000:3000)}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  if(t.hasAttribute("data-close")){ov.hidden=true;ovS.hidden=true;if(recOn&&rec)rec.stop();ovD.hidden=true;return}
+  if(t.dataset.cat!==undefined){f.cat=t.dataset.cat;render();return}
+  if(t.dataset.edit){const it=items.find(x=>x.id===t.dataset.edit);if(it)openForm(it);return}
+  if(t.dataset.dec){bump(t.dataset.dec,-1);return}
+  if(t.dataset.inc){bump(t.dataset.inc,1);return}
+  if(t.dataset.rm!==undefined){props.splice(+t.dataset.rm,1);drawProps();return}
+});
+[ov,ovS,ovD].forEach(o=>o.addEventListener("click",e=>{if(e.target===o){o.hidden=true;if(o===ovD&&recOn&&rec)rec.stop()}}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){ov.hidden=true;ovS.hidden=true;ovD.hidden=true}});
+$("#bAdd").addEventListener("click",()=>openForm(null));
+$("#bSet").addEventListener("click",openSet);
+$("#bDict").addEventListener("click",()=>{openDict();startMic()});
+let qT;$("#q").addEventListener("input",e=>{clearTimeout(qT);qT=setTimeout(()=>{f.q=e.target.value.trim();render()},150)});
+$("#bCopy").addEventListener("click",async()=>{
+  const L=["Inventaire congélos — "+new Date().toLocaleDateString("fr-FR")];
+  for(const z of cfg.freezers){L.push("",z.name.toUpperCase());const zs=items.filter(i=>fzOf(i.fz).id===z.id);const line=i=>`  - ${i.name} : ${fmtQ(i.qty)} ${i.unit}${i.note?" ("+i.note+")":""}, ${ageLabel(i)}`;
+    if(z.drawers){for(let d=1;d<=z.drawers;d++){const its=zs.filter(i=>drOf(i)===d);if(its.length){L.push("Tiroir "+d+" :");its.forEach(i=>L.push(line(i)))}}}else zs.forEach(i=>L.push(line(i)))}
+  try{await navigator.clipboard.writeText(L.join("\n"));toast("Inventaire copié.")}catch(e){toast("La copie n'est pas autorisée ici.")}
+});
+render();
+
+async function load(){
+  try{const d=await run("getAll");cleanCfg({freezers:d.freezers});items=(d.items||[]).map(x=>cleanItem(x,x.id));loaded=true;
+    const m=$("#mode");m.textContent="Enregistré dans votre Google Sheet. ";if(String(d.url||"").indexOf("https:")===0){const a=document.createElement("a");a.href=d.url;a.target="_blank";a.rel="noopener";a.textContent="Ouvrir le tableau";m.appendChild(a)}
+  }catch(e){loaded=true;$("#mode").textContent="Impossible de lire le Google Sheet pour le moment."}
+  render();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&ovD.hidden&&ov.hidden)load()});
+load();
+}
+</script>
+</body>
+</html>
