@@ -221,7 +221,7 @@ function render(){
   $("#prioL").innerHTML=pr.map(i=>`<button type="button" class="chip" data-edit="${esc(i.id)}">${esc(i.name)} · ${esc(ageLabel(i))}</button>`).join("");
   const q=norm(f.q);
   const vis=items.filter(i=>(!f.cat||i.cat===f.cat)&&(!q||norm(i.name+" "+i.note).includes(q))).sort((a,b)=>ageDays(b)-ageDays(a));
-  const row=i=>`<div class="it ${status(i)}"><button type="button" class="nm" data-edit="${esc(i.id)}"><b>${esc(i.name)}<span class="pill">${esc(ageLabel(i))}</span></b>${i.note?`<em>${esc(i.note)}</em>`:""}</button><div class="qty"><button type="button" data-dec="${esc(i.id)}" aria-label="Retirer 1">−</button><span>${fmtQ(i.qty)}<small>${esc(i.unit)}</small></span><button type="button" data-inc="${esc(i.id)}" aria-label="Ajouter 1">+</button></div></div>`;
+  const row=i=>`<div class="it ${status(i)}"><button type="button" class="nm" data-edit="${esc(i.id)}"><b>${esc(i.name)}${status(i)!=="ok"?`<span class="pill">${esc(ageLabel(i))}</span>`:""}</b>${i.note?`<em>${esc(i.note)}</em>`:""}</button><div class="qty"><button type="button" data-dec="${esc(i.id)}" aria-label="Retirer 1">−</button><span>${fmtQ(i.qty)}<small>${esc(i.unit)}</small></span><button type="button" data-inc="${esc(i.id)}" aria-label="Ajouter 1">+</button></div></div>`;
   const list=a=>a.length?CATS.map(c=>{const g=a.filter(i=>i.cat===c[0]);return g.length?`<div class="cath">${esc(c[0])}</div>`+g.map(row).join(""):""}).join(""):`<div class="empty">${loaded?"Vide":"…"}</div>`;
   $("#fzs").innerHTML=cfg.freezers.map((z,k)=>{
     const its=vis.filter(i=>fzOf(i.fz).id===z.id),tot=items.filter(i=>fzOf(i.fz).id===z.id).length;
