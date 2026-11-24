@@ -125,6 +125,7 @@ button{cursor:pointer}
     <h2>Dicter</h2>
     <div class="big">
       <button class="micb" id="micb" type="button" aria-label="Parler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <label class="f" id="micBox" hidden>Micro utilisé<select id="micSel"></select></label>
       <p class="hint" id="micHint">Touchez le micro et parlez. Par exemple : « 3 steaks hachés dans le tiroir 2 du frigo et 2 sachets de haricots verts dans la banque ».</p>
     </div>
     <label class="f">Ce que vous avez dit<textarea id="dTxt" placeholder="Vous pouvez aussi taper ici, ou utiliser le micro de votre clavier."></textarea></label>
@@ -359,7 +360,9 @@ async function startMic(){
   if(busy)return;
   if(recOn&&rec){rec.stop();return}
   loadAsr();
-  try{mStream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){hint("Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.");return}
+  let mid="";try{mid=localStorage.getItem("micId")||""}catch(e){}
+  try{try{mStream=await navigator.mediaDevices.getUserMedia({audio:mid?{deviceId:{exact:mid}}:true})}catch(e){if(!mid)throw e;mStream=await navigator.mediaDevices.getUserMedia({audio:true})}}catch(e){hint("Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.");return}
+  fillMics();
   chunks=[];rec=new MediaRecorder(mStream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
   rec.onstop=()=>{const type=rec.mimeType;stopMeter();micState(false);transcribe(new Blob(chunks,{type}))};
   rec.start();micState(true);meter();
@@ -368,7 +371,7 @@ async function transcribe(blob){
   busy=true;hint(asrP&&dl<100&&dl>0?"Préparation de la dictée (seulement la première fois) : "+dl+" %":"Je transcris…");$("#micb").classList.add("busy");
   try{
     const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC({sampleRate:16000});const ab=await ac.decodeAudioData(await blob.arrayBuffer());ac.close&&ac.close();
-    let data=ab.getChannelData(0);let mx=0;for(const v of data)mx=Math.max(mx,Math.abs(v));if(mx<0.01){hint("Je n'ai rien entendu : le son du micro est trop faible.");return}data=data.map(v=>v/mx*0.9);const m=await loadAsr();hint("Je transcris…");
+    let data=ab.getChannelData(0);let mx=0;for(const v of data)mx=Math.max(mx,Math.abs(v));if(mx<0.01){const o=$("#micSel").selectedOptions[0];hint("Je n'ai rien entendu avec le micro « "+(o?o.textContent:"par défaut")+" ». Choisis un autre micro dans la liste ci-dessus, puis touche le gros micro et parle : le rond vert doit bouger avec ta voix.");$("#micBox").hidden=false;return}data=data.map(v=>v/mx*0.9);const m=await loadAsr();hint("Je transcris…");
     const opt={language:"french",task:"transcribe",no_repeat_ngram_size:3,max_new_tokens:160};if(ab.duration>28){opt.chunk_length_s=30;opt.stride_length_s=5}
     const out=await m(data,opt);
     const t=String(out&&out.text||"").replace(/(.{6,}?)(?:\s*\1){2,}/g,"$1").trim();
@@ -380,6 +383,8 @@ async function transcribe(blob){
   finally{busy=false;$("#micb").classList.remove("busy")}
 }
 window.__transcribe=transcribe;
+async function fillMics(){try{const cur=mStream&&mStream.getAudioTracks()[0];const curId=cur&&cur.getSettings?cur.getSettings().deviceId:"";const ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="audioinput"&&d.deviceId!=="default"&&d.deviceId!=="communications");const sel=$("#micSel");sel.innerHTML=ds.map((d,i)=>`<option value="${esc(d.deviceId)}"${d.deviceId===curId?" selected":""}>${esc(d.label||"Micro "+(i+1))}</option>`).join("");if(ds.length>1)$("#micBox").hidden=false}catch(e){}}
+$("#micSel").addEventListener("change",e=>{try{localStorage.setItem("micId",e.target.value)}catch(x){}hint("Micro changé. Touche le gros micro et parle.")});
 let pT;$("#dTxt").addEventListener("input",()=>{if(recOn)return;clearTimeout(pT);pT=setTimeout(()=>{if(!$("#dTxt").value.trim())return;props=parseText($("#dTxt").value);drawProps();if(props.length)hint("Vérifie ci-dessous, puis touche Tout ranger.")},1500)});
 $("#micb").addEventListener("click",startMic);
 
