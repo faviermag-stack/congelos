@@ -356,20 +356,19 @@ let asrP=null,mStream=null,aCtx=null,chunks=[],busy=false,dl=0;
 function loadAsr(){if(asrP)return asrP;asrP=(async()=>{const T=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3");T.env.allowLocalModels=false;let gpu=false;try{gpu=!!(navigator.gpu&&await navigator.gpu.requestAdapter())}catch(e){}const fl={};const progress_callback=p=>{if(p.status==="progress"&&p.total){fl[p.file]=[p.loaded,p.total];let l=0,t=0;for(const k in fl){l+=fl[k][0];t+=fl[k][1]}dl=Math.min(99,Math.round(l/t*100));if(busy&&t>3e6)hint("Préparation de la dictée (seulement la première fois) : "+dl+" %")}};return gpu?await T.pipeline("automatic-speech-recognition","onnx-community/whisper-small",{device:"webgpu",dtype:{encoder_model:"fp32",decoder_model_merged:"q4"},progress_callback}):await T.pipeline("automatic-speech-recognition","Xenova/whisper-base",{progress_callback})})();asrP.then(()=>{dl=100}).catch(()=>{asrP=null});return asrP}
 function meter(){try{aCtx=new (window.AudioContext||window.webkitAudioContext)();const an=aCtx.createAnalyser();an.fftSize=512;aCtx.createMediaStreamSource(mStream).connect(an);const buf=new Uint8Array(512);const tick=()=>{if(!aCtx)return;an.getByteTimeDomainData(buf);let p=0;for(const v of buf)p=Math.max(p,Math.abs(v-128)/128);$("#micb").style.boxShadow="0 0 0 "+Math.round(4+p*45)+"px rgba(43,154,120,.28)";requestAnimationFrame(tick)};tick()}catch(e){}}
 function stopMeter(){try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{aCtx&&aCtx.close()}catch(e){}aCtx=null;mStream=null;$("#micb").style.boxShadow=""}
-const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;let sr=null,srTxt="",srEnd=null;
-function srStart(){srTxt="";sr=null;if(!SRC)return;try{sr=new SRC();sr.lang="fr-FR";sr.continuous=true;sr.interimResults=false;sr.onresult=ev=>{let t="";for(const r of ev.results)if(r.isFinal)t+=r[0].transcript+" ";srTxt=t};srEnd=new Promise(r=>{sr.onend=r});sr.onerror=()=>{};sr.start()}catch(e){sr=null}}
-async function srStop(){if(!sr)return "";try{sr.stop()}catch(e){}await Promise.race([srEnd,new Promise(r=>setTimeout(r,2500))]);sr=null;return srTxt.trim()}
+const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;let sr=null,srTxt="",srEnd=null,srBase="",autoT=null;
+function srStart(){srTxt="";sr=null;if(!SRC)return;try{sr=new SRC();sr.lang="fr-FR";sr.continuous=true;sr.interimResults=true;srBase=$("#dTxt").value.trim();sr.onresult=ev=>{let t="";for(const r of ev.results)t+=r[0].transcript+" ";srTxt=t;$("#dTxt").value=(srBase?srBase+". ":"")+t.trim();clearTimeout(autoT);autoT=setTimeout(()=>{if(recOn&&rec)rec.stop()},1800)};srEnd=new Promise(r=>{sr.onend=r});sr.onerror=()=>{};sr.start()}catch(e){sr=null}}
+async function srStop(){clearTimeout(autoT);if(!sr)return "";try{sr.stop()}catch(e){}await Promise.race([srEnd,new Promise(r=>setTimeout(r,srTxt.trim()?400:1500))]);sr=null;return srTxt.trim()}
 function fixFood(t){return String(t).replace(/\bsteack/gi,"steak").replace(/\b(steaks?)\s+(à chier|a chier|à cher|à ch[ée]s?|achet[ée]?s?|ach[ée]s?|hach[ée]?s?|acher)(?=[\s,.;!?]|$)/gi,(m,a)=>a+(/s$/i.test(a)?" hachés":" haché")).replace(/\bblancs? de (dindes?|daine|dine|dingue)\b/gi,m=>m.split(" ")[0]+" de dinde")}
 function useText(t){t=fixFood(t);const cur=$("#dTxt").value.trim();$("#dTxt").value=(cur?cur+". ":"")+t;props=parseText($("#dTxt").value);drawProps();hint(props.length?"Vérifie ci-dessous, puis touche Tout ranger. Touche le micro pour compléter.":"Je n'ai rien compris, réessaie.")}
 async function startMic(){
   if(busy)return;
   if(recOn&&rec){rec.stop();return}
-  loadAsr();
   let mid="";try{mid=localStorage.getItem("micId")||""}catch(e){}
   try{try{mStream=await navigator.mediaDevices.getUserMedia({audio:mid?{deviceId:{exact:mid}}:true})}catch(e){if(!mid)throw e;mStream=await navigator.mediaDevices.getUserMedia({audio:true})}}catch(e){hint("Le micro est refusé : autorise-le pour ce site (icône à gauche de l'adresse), puis réessaie.");return}
   fillMics();
   chunks=[];rec=new MediaRecorder(mStream);rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-  rec.onstop=async()=>{const type=rec.mimeType;stopMeter();micState(false);busy=true;hint("Je transcris…");const g=await srStop();busy=false;if(g){useText(g);return}transcribe(new Blob(chunks,{type}))};
+  rec.onstop=async()=>{const type=rec.mimeType;stopMeter();micState(false);busy=true;hint("Je transcris…");const g=await srStop();busy=false;if(g){$("#dTxt").value=srBase;useText(g);return}transcribe(new Blob(chunks,{type}))};
   rec.start();micState(true);meter();srStart();
 }
 async function transcribe(blob){
