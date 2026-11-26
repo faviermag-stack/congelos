@@ -44,6 +44,7 @@ button{cursor:pointer}
 .prio{background:var(--latebg);border-radius:18px;padding:14px 16px}
 .prio h3{font-size:18px;color:var(--late);margin-bottom:8px}
 .prio .chip{border-color:#f2c3bb}
+.buy{background:#fff1e0;border-radius:18px;padding:14px 16px}.buy h3{font-size:18px;color:#c25e00;margin-bottom:8px}.buy .chip{background:#ffe2bf;border-color:#f6b871;color:#9a4a00;font-weight:600}
 .fzs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;align-items:start}
 .fz{background:var(--card);border-radius:22px;border:1px solid var(--line);overflow:hidden;box-shadow:0 6px 20px #25323b0d}
 .fzh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:16px 18px}
@@ -115,6 +116,7 @@ button{cursor:pointer}
   </div>
   <div class="tools"><input id="q" type="search" placeholder="Chercher un produit…" aria-label="Chercher"></div>
   <div class="chips" id="cats"></div>
+  <section class="buy" id="buy" hidden><h3>À racheter</h3><div class="chips" id="buyL"></div></section>
   <section class="prio" id="prio" hidden><h3>À manger en priorité</h3><div class="chips" id="prioL"></div></section>
   <div class="fzs" id="fzs"></div>
   <div class="foot"><span id="mode">Chargement…</span><button class="btn ghost" id="bCopy" type="button">Copier l'inventaire</button></div>
@@ -189,6 +191,9 @@ const SYN=[["frigo","refrigerateur","petit congel","cuisine"],["banque","coffre"
 const catOf=k=>CATS.find(c=>c[0]===k)||CATS[CATS.length-1];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const BASE=["Blanc de poulet","Râpé","Jambon","Beurre","Lardons","Échalote"];
+const stems=s=>norm(s).replace(/[^a-z0-9]+/g," ").split(" ").filter(x=>x.length>2&&!["des","les","une","aux"].includes(x)).map(x=>x.replace(/tt/g,"t").replace(/[sx]$/,""));
+function isBase(b,name){const n=stems(name);return stems(b).every(x=>n.includes(x))}
 const norm=s=>[...String(s||"").toLowerCase()].map(c=>c.normalize("NFD")[0]).join("").replace(/[’`]/g,"'");
 const today=(o)=>{const d=new Date();d.setDate(d.getDate()-(o||0));d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
 const newId=()=>"i"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -216,6 +221,9 @@ function render(){
   const late=items.filter(i=>status(i)==="late");
   $("#sum").textContent=!loaded?"Chargement…":items.length?`${items.length} produit${items.length>1?"s":""}${late.length?` · ${late.length} à manger vite`:""}`:"Rien d'enregistré pour l'instant.";
   $("#cats").innerHTML=[["","Tout"],...CATS].map(c=>`<button type="button" class="chip${f.cat===c[0]?" on":""}" data-cat="${esc(c[0])}">${esc(c[0]||c[1])}</button>`).join("");
+  const miss=loaded?BASE.filter(b=>!items.some(i=>i.qty>0&&isBase(b,i.name))):[];
+  $("#buy").hidden=!miss.length;
+  $("#buyL").innerHTML=miss.map(b=>`<span class="chip">${esc(b)}</span>`).join("");
   const pr=late.sort((a,b)=>ageDays(b)-ageDays(a)).slice(0,8);
   $("#prio").hidden=!pr.length;
   $("#prioL").innerHTML=pr.map(i=>`<button type="button" class="chip" data-edit="${esc(i.id)}">${esc(i.name)} · ${esc(ageLabel(i))}</button>`).join("");
